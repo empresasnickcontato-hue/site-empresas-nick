@@ -13,6 +13,8 @@ import QRCode from 'qrcode'
 import multer from 'multer'
 import crypto from 'crypto'
 import { sendEmail, isEmailConfigured } from './src/lib/email.js'
+import { turso, initTurso } from './src/lib/turso.js'
+await initTurso();
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -62,18 +64,27 @@ function ensureDataFile() {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
   if (!fs.existsSync(DATA_FILE)) fs.writeFileSync(DATA_FILE, '[]', 'utf-8')
 }
+
 function readUsers() {
   ensureDataFile()
   try {
-    return JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'))
-  } catch {
-    return []
-  }
+    const local = JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'))
+    if (local.length > 0 || !turso) return local
+  } catch {}
+  return []
 }
+
 function writeUsers(users) {
   ensureDataFile()
   fs.writeFileSync(DATA_FILE, JSON.stringify(users, null, 2), 'utf-8')
+  if (turso) {
+    // salva no Turso também, pra não apagar no Render
+    for (const u of users) {
+      turso.execute({ sql: "INSERT OR REPLACE INTO users (id, data) VALUES (?, ?)", args: [u.id, JSON.stringify(u)] }).catch(()=>{})
+    }
+  }
 }
+
 function ensureProjectsFile() {
   const dir = path.dirname(PROJECTS_FILE)
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
@@ -87,9 +98,15 @@ function readProjects() {
     return []
   }
 }
+
 function writeProjects(projects) {
   ensureProjectsFile()
   fs.writeFileSync(PROJECTS_FILE, JSON.stringify(projects, null, 2), 'utf-8')
+  if (turso) {
+    for (const p of projects) {
+      turso.execute({ sql: "INSERT OR REPLACE INTO projects (id, data) VALUES (?, ?)", args: [p.id, JSON.stringify(p)] }).catch(()=>{})
+    }
+  }
 }
 
 function ensureMessagesFile() {
