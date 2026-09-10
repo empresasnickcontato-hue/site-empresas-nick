@@ -2,10 +2,10 @@
   "name": "empresas-nick-backend",
   "version": "1.0.0",
   "type": "module",
-  "description": "Backend Empresas Nick - Exclusivo",
+  "description": "Backend Empresas Nick",
   "main": "server.js",
   "scripts": {
-    "dev": "fuser -k 3001/tcp 2>/dev/null; fuser -k 5173/tcp 2>/dev/null; pkill -9 node 2>/dev/null; node server.js",
+    "dev": "node server.js",
     "start": "node server.js"
   },
   "dependencies": {
