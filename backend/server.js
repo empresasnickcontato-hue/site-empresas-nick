@@ -68,10 +68,10 @@ function ensureDataFile() {
 function readUsers() {
   ensureDataFile()
   try {
-    const local = JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'))
-    if (local.length > 0 || !turso) return local
-  } catch {}
-  return []
+    return JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'))
+  } catch {
+    return []
+  }
 }
 
 function writeUsers(users) {
