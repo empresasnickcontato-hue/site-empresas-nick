@@ -1,0 +1,47 @@
+[
+  {
+    "id": "plano-start",
+    "nome": "Start Nick",
+    "preco": 225,
+    "descricao": "2 página",
+    "recursos": [
+      "2 página",
+      "Design responsivo",
+      "Entrega em 7 dias"
+    ],
+    "destaque": false,
+    "ativo": true,
+    "ordem": 1,
+    "criadoEm": "2026-09-09T23:35:44.532Z"
+  },
+  {
+    "id": "plano-pro",
+    "nome": "Pro Nick",
+    "preco": 395,
+    "descricao": "até 5 páginas + WhatsApp",
+    "recursos": [
+      "Até 5 páginas",
+      "Botão WhatsApp",
+      "Entrega em 7 dias"
+    ],
+    "destaque": true,
+    "ativo": true,
+    "ordem": 2,
+    "criadoEm": "2026-09-09T23:35:44.532Z"
+  },
+  {
+    "id": "plano-premium",
+    "nome": "Premium Nick",
+    "preco": 775,
+    "descricao": "completo + SEO",
+    "recursos": [
+      "Páginas ilimitadas",
+      "SEO otimizado",
+      "Suporte 30 dias"
+    ],
+    "destaque": false,
+    "ativo": true,
+    "ordem": 3,
+    "criadoEm": "2026-09-09T23:35:44.532Z"
+  }
+]

@@ -1,0 +1,58 @@
+[
+  {
+    "id": "faq-precos",
+    "pergunta": "Quais são os planos e valores?",
+    "resposta": "Planos: Start, Pro e Premium. Valores atuais no checkout — pagamento só via Pix.",
+    "ordem": 1,
+    "ativo": true,
+    "criadoEm": "2026-09-09T21:42:43.248Z"
+  },
+  {
+    "id": "faq-fatura",
+    "pergunta": "Quando vence a fatura?",
+    "resposta": "Fatura vence todo dia 10. Só via PIX. Acesse /dashboard → Pagamento, escaneie o QR ou use o copia e cola.",
+    "ordem": 2,
+    "ativo": true,
+    "criadoEm": "2026-09-09T21:42:43.248Z"
+  },
+  {
+    "id": "faq-pagar",
+    "pergunta": "Como pagar?",
+    "resposta": "Pagamento é só via PIX (QR Code + copia e cola na tela de pagamento). Após pagar, o admin confirma e seu site entra em desenvolvimento (prazo de 7 dias).",
+    "ordem": 3,
+    "ativo": true,
+    "criadoEm": "2026-09-09T21:42:43.248Z"
+  },
+  {
+    "id": "faq-prazo",
+    "pergunta": "Qual o prazo de entrega?",
+    "resposta": "Básico 5 dias, Profissional 7 dias, Premium 10 dias após pagamento.",
+    "ordem": 4,
+    "ativo": true,
+    "criadoEm": "2026-09-09T21:42:43.248Z"
+  },
+  {
+    "id": "faq-reembolso",
+    "pergunta": "Posso pedir reembolso?",
+    "resposta": "Sim, até 7 dias após pagamento se site ainda não foi para o ar. Fale com suporte.",
+    "ordem": 5,
+    "ativo": true,
+    "criadoEm": "2026-09-09T21:42:43.248Z"
+  },
+  {
+    "id": "faq-humano",
+    "pergunta": "Como falo com humano?",
+    "resposta": "Digite \"falar com humano\" ou aguarde 3 tentativas sem solução — te conecto no WhatsApp.",
+    "ordem": 6,
+    "ativo": true,
+    "criadoEm": "2026-09-09T21:42:43.248Z"
+  },
+  {
+    "id": "1789005859039",
+    "pergunta": "Quais Limguagens Empresas Nick usa pra criar meu site ?",
+    "resposta": "Criamos seu site com as seguintes Limpar --> HTML, CSS, JAVASCRIPT, TAILWINDCSS, REACT.JS, NODE.JS, EXPRESS",
+    "ordem": 7,
+    "ativo": true,
+    "criadoEm": "2026-09-10T02:04:19.039Z"
+  }
+]

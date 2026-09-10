@@ -1,0 +1,38 @@
+[
+  {
+    "id": "pix-1789013913931",
+    "valor": 15,
+    "copiaECola": "00020126360014br.gov.bcb.pix0114+5511916572015520400005303986540515.005802BR5913EMPRESAS NICK6009SAO PAULO62120508LS7REU5J6304FE7D",
+    "planoId": null,
+    "status": "pendente",
+    "createdAt": "2026-09-10T04:18:33.931Z",
+    "expiraEm": "2026-09-10T04:48:33.931Z"
+  },
+  {
+    "id": "pix-1789013945326",
+    "valor": 15,
+    "copiaECola": "00020126410014br.gov.bcb.pix0119nzmsoares@gmail.com520400005303986540515.005802BR5925NICOLAS ZANONI MARCOS SOA6009SAO PAULO62120508WES4L2916304B941",
+    "planoId": null,
+    "status": "pendente",
+    "createdAt": "2026-09-10T04:19:05.326Z",
+    "expiraEm": "2026-09-10T04:49:05.326Z"
+  },
+  {
+    "id": "pix-1789014042337",
+    "valor": 15,
+    "copiaECola": "00020126360014br.gov.bcb.pix0114+5511916572015520400005303986540515.005802BR5925NICOLAS ZANONI MARCOS SOA6009SAO PAULO621205089UJN54Q263042BA7",
+    "planoId": null,
+    "status": "pendente",
+    "createdAt": "2026-09-10T04:20:42.337Z",
+    "expiraEm": "2026-09-10T04:50:42.337Z"
+  },
+  {
+    "id": "pix-1789014354785",
+    "valor": 775,
+    "copiaECola": "00020126360014br.gov.bcb.pix0114+55119165720155204000053039865406775.005802BR5925NICOLAS ZANONI MARCOS SOA6009SAO PAULO621205081NWIVSRD63043732",
+    "planoId": "plano-premium",
+    "status": "pendente",
+    "createdAt": "2026-09-10T04:25:54.785Z",
+    "expiraEm": "2026-09-10T04:55:54.785Z"
+  }
+]

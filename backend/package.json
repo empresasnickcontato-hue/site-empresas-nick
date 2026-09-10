@@ -1,0 +1,23 @@
+{
+  "name": "empresas-nick-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Backend Empresas Nick - Exclusivo",
+  "main": "server.js",
+  "scripts": {
+    "dev": "fuser -k 3001/tcp 2>/dev/null; fuser -k 5173/tcp 2>/dev/null; pkill -9 node 2>/dev/null; node server.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^7.0.0-rc14",
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^17.4.2",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.3.0",
+    "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0"
+  }
+}
