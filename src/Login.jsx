@@ -34,8 +34,9 @@ function Login({ onVoltar, onIrCadastro, onLogado, onEsqueciSenha }) {
       // (padrão Authorization: Bearer das abas admin/Portfolio/Bot — sem divergência)
       try { if (data.token) persistToken(data.token) } catch {}
       if (onLogado) onLogado(data)
-    } catch {
-      setErro('Erro de conexão com o servidor.')
+    } catch (err) {
+      console.error(err)
+      setErro(err?.message || 'Erro de conexão com o servidor.')
     } finally {
       setLoading(false)
     }

@@ -88,8 +88,9 @@ function Cadastro({ onVoltar, onIrLogin, onCadastrado }) {
       // (padrão Authorization: Bearer das abas admin/Portfolio/Bot — sem divergência)
       try { if (data.token) persistToken(data.token) } catch {}
       if (onCadastrado) onCadastrado(data)
-    } catch {
-      setErro('Erro de conexão com o servidor.')
+    } catch (err) {
+      console.error(err)
+      setErro(err?.message || 'Erro de conexão com o servidor.')
     } finally {
       setLoading(false)
     }
