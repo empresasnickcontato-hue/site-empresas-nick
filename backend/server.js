@@ -57,6 +57,7 @@ function noCache(req, res, next) {
 app.use('/api', noCache)
 app.use('/me', noCache)
 
+app.get("/debug", async (req, res) => { try { const r = await turso.execute("SELECT COUNT(*) as total FROM users"); const u = await turso.execute("SELECT * FROM users LIMIT 5"); res.json({ status: "OK TURSO", total: r.rows[0], preview: u.rows }); } catch (e) { res.status(500).json({ erro: e.message }); } });
 
 
 function ensureDataFile() {
