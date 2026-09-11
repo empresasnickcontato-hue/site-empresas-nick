@@ -1,4 +1,6 @@
 const BASE = import.meta.env.VITE_API_URL || 'https://site-empresas-nick-backend.onrender.com';
+export const BASE_URL = BASE;
+export const API_URL = BASE;
 
 export function getToken(){
   return localStorage.getItem('adminToken') || localStorage.getItem('token') || '';
@@ -32,7 +34,6 @@ export async function apiFetch(path, options={}){
   return ct.includes('json') ? res.json() : res.text();
 }
 
-// compatibilidade com código antigo que usa `api`
 export const api = {
   get: (path, opts) => apiFetch(path, { method:'GET', ...(opts||{}) }),
   post: (path, body, opts) => apiFetch(path, { method:'POST', body: JSON.stringify(body), ...(opts||{}) }),
