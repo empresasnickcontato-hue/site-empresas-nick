@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api } from '../../services/api.js'
+import { api, authHeaders } from '../../services/api.js'
 
 // Aba Pagamentos (admin) — conectada em tempo real com ConfigPixPayment.
 // - loadAll: GET /api/pix-config + GET /api/admin/planos em paralelo
@@ -25,8 +25,8 @@ function Pagamentos() {
       try {
         setErroLoad('')
         const [pixRes, planosRes] = await Promise.all([
-          api.get('/api/pix-config?t=' + Date.now()),
-          api.get('/api/admin/planos?t=' + Date.now()),
+          api.get('/api/pix-config?t=' + Date.now(), { headers: authHeaders() }),
+          api.get('/api/admin/planos?t=' + Date.now(), { headers: authHeaders() }),
         ])
         if (pixRes.status === 401 || planosRes.status === 401) {
           setErroLoad('Sessão expirada — entre de novo como admin e recarregue.')
@@ -96,7 +96,7 @@ function Pagamentos() {
       return
     }
     try {
-      const res = await api.post('/api/pix/gerar', body)
+      const res = await api.post('/api/pix/gerar', body, { headers: authHeaders() })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
         setMsg(data.erro || 'Erro ao gerar QR')

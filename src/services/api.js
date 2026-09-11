@@ -2,19 +2,19 @@
 // Usa fetch nativo (axios não é dependência do projeto) com a mesma semântica:
 // - baseURL via VITE_API_URL (fallback http://localhost:3001)
 // - request interceptor: injeta `Authorization: Bearer <token>` em TODA chamada,
-//   lendo as chaves 'token', 'adminToken', 'authToken' e 'en_token' (login salva nas 4)
+//   lendo as chaves 'token', 'authToken' e 'adminToken' (login salva nas 4,
+//   incluindo 'en_token' como fallback legado)
 // - sempre envia o cookie httpOnly (credentials: 'include') como segundo canal de auth
 
 export const BASE_URL = (import.meta.env && import.meta.env.VITE_API_URL) || 'https://site-empresas-nick-backend.onrender.com'
 
-export const TOKEN_KEYS = ['token', 'adminToken', 'authToken', 'en_token']
+export const TOKEN_KEYS = ['token', 'authToken', 'adminToken', 'en_token']
 
 export function getToken() {
   try {
-    for (const k of TOKEN_KEYS) {
-      const v = localStorage.getItem(k)
-      if (v) return v
-    }
+    const token = localStorage.getItem('token') || localStorage.getItem('authToken') || localStorage.getItem('adminToken');
+    if (token) return token;
+    return localStorage.getItem('en_token') || '';
   } catch {}
   return ''
 }
@@ -46,11 +46,13 @@ function joinUrl(path) {
 }
 
 // Interceptor de request: injeta Bearer + cookie em todo fetch do painel.
+// Garante Authorization em TODAS as requisições (rotas admin incluídas).
 export async function apiFetch(path, options = {}) {
   const headers = { ...(options.headers || {}) }
   try {
-    const t = getToken()
-    if (t && !headers.Authorization && !headers.authorization) {
+    const token = localStorage.getItem('token') || localStorage.getItem('authToken') || localStorage.getItem('adminToken');
+    const t = token || getToken();
+    if (t) {
       headers.Authorization = `Bearer ${t}`
     }
   } catch {}

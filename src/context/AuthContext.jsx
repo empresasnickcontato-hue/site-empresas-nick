@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-import { apiFetch, clearToken } from '../services/api.js'
+import { apiFetch, authHeaders, clearToken } from '../services/api.js'
 
 const AuthContext = createContext(null)
 
@@ -13,7 +13,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     async function checkMe() {
       try {
-        const res = await apiFetch('/api/me?t=' + Date.now(), { cache: 'no-store' })
+        const res = await apiFetch('/api/me?t=' + Date.now(), { cache: 'no-store', headers: authHeaders() })
         if (res.ok) {
           const data = await res.json()
           setUser(data.user)
