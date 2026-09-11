@@ -49,12 +49,7 @@ const UPLOADS_PORTFOLIO_DIR = path.join(__dirname, 'uploads', 'portfolio')
 
 app.use(cookieParser())
 
-app.use(cors({
-  origin: true,
-  credentials: true,
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-access-token'],
-  methods: ['GET','POST','PUT','DELETE','OPTIONS']
-}))
+app.use(cors({ origin: true, credentials: true, allowedHeaders: ['Content-Type','Authorization','x-access-token'], methods: ['GET','POST','PUT','DELETE','OPTIONS'] }))
 
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
