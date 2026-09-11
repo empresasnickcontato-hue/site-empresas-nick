@@ -1883,8 +1883,9 @@ app.get('/api/admin/funcionarios', autenticarToken, isAdmin, (req, res) => {
 })
 
 // PUT /api/admin/funcionarios { email } -> dar acesso admin (só admin)
+// POST /api/admin/funcionarios { email } -> alias do PUT (mesmo middleware de /api/admin/users)
 // Cada funcionário depois faz login com o PRÓPRIO email/senha e ganha o PRÓPRIO token.
-app.put('/api/admin/funcionarios', autenticarToken, isAdmin, (req, res) => {
+function promoverFuncionario(req, res) {
   const email = String((req.body && req.body.email) || '').trim().toLowerCase()
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ erro: 'E-mail inválido.' })
   const users = readUsers()
@@ -1896,7 +1897,9 @@ app.put('/api/admin/funcionarios', autenticarToken, isAdmin, (req, res) => {
   writeUsers(users)
   const { senhaHash: _, senha: __, resetToken: _rt, resetTokenExpiry: _rte, ...pub } = u
   res.json({ msg: 'Acesso admin concedido!', user: { ...pub, adminDesde: u.addedAt } })
-})
+}
+app.put('/api/admin/funcionarios', autenticarToken, isAdmin, promoverFuncionario)
+app.post('/api/admin/funcionarios', autenticarToken, isAdmin, promoverFuncionario)
 
 // DELETE /api/admin/funcionarios/:id -> remover acesso admin (só admin, nunca a si mesmo)
 app.delete('/api/admin/funcionarios/:id', autenticarToken, isAdmin, (req, res) => {
