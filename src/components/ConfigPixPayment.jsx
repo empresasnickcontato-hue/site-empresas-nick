@@ -137,6 +137,8 @@ function ConfigPixPayment() {
   }
 
   return (
+    <div style={{background: _t ? '#0f0' : '#f00', color:'#000', padding:'10px', fontWeight:'bold'}}>{_t ? `TOKEN OK: ${_t.slice(0,20)}...` : 'TOKEN VAZIO - FAÇA LOGOUT E LOGIN' } TOKEN DEBUG</div>
+    <>
     <div style={{ display: 'grid', gap: '16px' }}>
       <form onSubmit={salvar} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px' }}>
         <h3>Configuração Pix</h3>
