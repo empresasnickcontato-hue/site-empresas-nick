@@ -1595,6 +1595,15 @@ async function savePixConfigHandler(req, res) {
 app.post('/api/pix-config', autenticarToken, isAdmin, savePixConfigHandler)
 app.post('/api/pix/config', autenticarToken, isAdmin, savePixConfigHandler)
 app.post('/api/admin/pix-config', autenticarToken, isAdmin, savePixConfigHandler)
+// GET /api/admin/pix-config -> leitura admin em tempo real (mesmo middleware de /api/admin/users).
+// Mesma fonte Turso do GET /api/pix-config (que continua PÚBLICO, sem token).
+app.get('/api/admin/pix-config', autenticarToken, isAdmin, async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  const { config: cfg } = await lerPixConfigTempoReal()
+  res.json(cfg)
+})
 // Alias público de leitura (mesma fonte Turso do GET /api/pix-config).
 app.get('/api/pix/config', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');

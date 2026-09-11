@@ -7,9 +7,9 @@ import { api } from '../services/api.js'
 // Token do ADMIN (evita tela preta no login): api.js já injeta sozinho,
 // mas aqui vai explícito como garantia nas chamadas deste painel.
 function getAdminToken() {
-  const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+  const token = localStorage.getItem('token') || localStorage.getItem('authToken') || localStorage.getItem('adminToken');
   try {
-    return token || localStorage.getItem('adminToken') || localStorage.getItem('en_token') || '';
+    return token || localStorage.getItem('en_token') || '';
   } catch { return token || '' }
 }
 function adminHeaders(extra) {
