@@ -612,20 +612,33 @@ function extractToken(req) {
 }
 
 function autenticarToken(req, res, next) {
-  // Auth via COOKIE (primário) + Authorization Bearer + ?token= + x-access-token.
-  // Aceita o cookie em qualquer nome usado pelo login/painel
-  // (`token`/`authToken`/`adminToken`/`session`), o header Bearer,
-  // o token na query (?token=...) e o header x-access-token.
-  const { fromCookie, fromHeader, fromQuery, fromX, token } = extractToken(req)
-  console.log(`[auth-debug] cookie: ${fromCookie ? 'presente' : 'ausente'} | Authorization: ${fromHeader ? 'presente' : 'ausente'} | query.token: ${fromQuery ? 'presente' : 'ausente'} | x-access-token: ${fromX ? 'presente' : 'ausente'} | rota: ${req.path}`)
-  if (!token) return res.status(401).json({ erro: 'Token não fornecido.', error: 'Token não fornecido' })
+  const authHeader = req.headers.authorization || req.headers.Authorization || '';
+  const fromBearer = authHeader.startsWith('Bearer ')? authHeader.split(' ')[1] : null;
+  const fromCookie = req.cookies?.token || req.cookies?.admintoken || req.cookies?.jwt || req.cookies?.['auth-token'] || null;
+  const fromQuery = req.query?.token || null;
+  const fromX = req.headers['x-access-token'] || null;
+  const token = fromBearer || fromCookie || fromQuery || fromX;
+
+  if (!token) {
+    console.log(`[auth-debug] FALHOU ${req.path} Bearer:${'ok' if fromBearer else 'vazio'} Cookie:${'ok' if fromCookie else 'vazio'} Header:${authHeader[:20]}`);
+    return res.status(401).json({ error: 'token não fornecido' });
+  }
   try {
-    req.user = jwt.verify(token, SECRET)
-    next()
-  } catch {
-    return res.status(401).json({ erro: 'Token inválido ou expirado.', error: 'Token inválido' })
+    const SECRET = process.env.JWT_SECRET || 'nick_secret_super_2024';
+    const decoded = require('jsonwebtoken').verify(token, SECRET);
+    req.userId = decoded.id || decoded.userId || decoded._id;
+    req.user = decoded;
+    return next();
+  } catch (e) {
+    return res.status(401).json({ error: 'token invalido: ' + e.message });
   }
 }
+// aliases compat
+const autenticaToken = autenticarToken;
+const authMiddleware = autenticarToken;
+const authenticarToken = autenticarToken;
+
+
 
 function isAdmin(req, res, next) {
   const { token: rawToken } = extractToken(req)
