@@ -1,45 +1,17 @@
-const BASE = import.meta.env.VITE_API_URL || 'https://site-empresas-nick-backend.onrender.com';
+const BASE = "https://site-empresas-nick-backend.onrender.com";
 export const BASE_URL = BASE;
 export const API_URL = BASE;
-
-export function getToken(){
-  return localStorage.getItem('adminToken') || localStorage.getItem('token') || '';
+export const getToken = () => localStorage.getItem('adminToken') || localStorage.getItem('token') || '';
+export const persistToken = (t) => { if(t){ localStorage.setItem('adminToken', t); localStorage.setItem('token', t);} };
+export const clearToken = () => { localStorage.removeItem('adminToken'); localStorage.removeItem('token'); };
+export const authHeaders = () => { const t=getToken(); return t?{Authorization:`Bearer ${t}`}:{}; };
+export const getAuthHeader = authHeaders;
+export async function apiFetch(path, opts={}){
+  const h={'Content-Type':'application/json', ...(opts.headers||{}), ...authHeaders()};
+  const r=await fetch(`${BASE}${path}`,{...opts, headers:h});
+  if(!r.ok) throw new Error(await r.text());
+  const ct=r.headers.get('content-type')||'';
+  return ct.includes('json')?r.json():r.text();
 }
-export function persistToken(token){
-  if(token){
-    localStorage.setItem('adminToken', token);
-    localStorage.setItem('token', token);
-  }
-}
-export function clearToken(){
-  localStorage.removeItem('adminToken');
-  localStorage.removeItem('token');
-}
-export function authHeaders(){
-  const t = getToken();
-  return t ? { Authorization: `Bearer ${t}` } : {};
-}
-export function getAuthHeader(){ return authHeaders(); }
-
-export async function apiFetch(path, options={}){
-  const token = getToken();
-  const headers = { 'Content-Type':'application/json', ...(options.headers||{}), ...authHeaders() };
-  if(token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(`${BASE}${path}`, {...options, headers});
-  if(!res.ok){
-    const txt = await res.text();
-    throw new Error(txt);
-  }
-  const ct = res.headers.get('content-type') || '';
-  return ct.includes('json') ? res.json() : res.text();
-}
-
-export const api = {
-  get: (path, opts) => apiFetch(path, { method:'GET', ...(opts||{}) }),
-  post: (path, body, opts) => apiFetch(path, { method:'POST', body: JSON.stringify(body), ...(opts||{}) }),
-  put: (path, body, opts) => apiFetch(path, { method:'PUT', body: JSON.stringify(body), ...(opts||{}) }),
-  delete: (path, opts) => apiFetch(path, { method:'DELETE', ...(opts||{}) }),
-  fetch: apiFetch
-};
-
+export const api={ get:(p,o)=>apiFetch(p,{method:'GET',...o}), post:(p,b,o)=>apiFetch(p,{method:'POST',body:JSON.stringify(b),...o}), put:(p,b,o)=>apiFetch(p,{method:'PUT',body:JSON.stringify(b),...o}), delete:(p,o)=>apiFetch(p,{method:'DELETE',...o}), fetch:apiFetch };
 export default api;
