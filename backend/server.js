@@ -257,7 +257,45 @@ function savePixConfig(cfg) {
 }
 // Alias compat: savePixConfigFile usado pelo prompt
 function savePixConfigFile(cfg) {
-  return savePixConfig(cfg)
+  const final = savePixConfig(cfg)
+  // Espelha no Turso (fonte oficial do GET público). Fire-and-forget: nunca derruba o save.
+  gravarPixConfigTurso(final).catch(() => {})
+  return final
+}
+// --- PIX-CONFIG NO TURSO (fonte oficial do GET público em tempo real) ---
+// Tabela chave-valor: pix_config(id='atual', data=JSON). Criada sob demanda;
+// se o Turso estiver OFF, segue só no JSON local sem quebrar nada.
+async function ensurePixConfigTable() {
+  if (!turso) return false
+  try {
+    await turso.execute('CREATE TABLE IF NOT EXISTS pix_config (id TEXT PRIMARY KEY, data TEXT)')
+    return true
+  } catch { return false }
+}
+async function gravarPixConfigTurso(cfg) {
+  if (!turso) return false
+  try {
+    await ensurePixConfigTable()
+    await turso.execute({ sql: 'INSERT OR REPLACE INTO pix_config (id, data) VALUES (?, ?)', args: ['atual', JSON.stringify(cfg)] })
+    return true
+  } catch (e) { console.error('[pix-config] falha ao gravar no Turso:', (e && e.message) || e); return false }
+}
+// Lê SEMPRE do Turso primeiro (tempo real p/ o site); fallback: JSON local.
+// Retorna { config, fonte: 'turso'|'json' }.
+async function lerPixConfigTempoReal() {
+  if (turso) {
+    try {
+      await ensurePixConfigTable()
+      const r = await turso.execute({ sql: 'SELECT data FROM pix_config WHERE id = ?', args: ['atual'] })
+      const row = r && r.rows && r.rows[0]
+      const raw = row && (row.data !== undefined ? row.data : row[0])
+      if (raw) {
+        const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
+        return { config: { ...defaultPixConfig(), ...parsed }, fonte: 'turso' }
+      }
+    } catch (e) { console.error('[pix-config] falha ao ler do Turso, usando JSON local:', (e && e.message) || e) }
+  }
+  return { config: loadPixConfig(), fonte: 'json' }
 }
 // --- PORTFÓLIO SITES CRIADOS (backend/data/portfolio.json + backend/uploads/portfolio) ---
 // Item: { id, titulo, cliente_nome, descricao, tipo: 'foto'|'video', url_arquivo, link_site, data }
@@ -1504,13 +1542,13 @@ async function gerarPix(chave, nome, cidade, valor, txid, tipoChave) {
   return { copiaECola: payload, qrBase64, valor: Number(valor) }
 }
 
-// GET /api/pix-config -> config atual (cliente logado usa no checkout)
-app.get('/api/pix-config', autenticarToken, (req, res) => {
+// GET /api/pix-config -> PÚBLICO (site/checkout lê sem token, tempo real).
+// Retorna SEMPRE do Turso primeiro (fonte oficial); fallback: JSON local.
+app.get('/api/pix-config', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
-  const cfg = loadPixConfig()
-  console.log(`[admin] GET /api/pix-config (${(req.user && req.user.email) || '?'})`)
+  const { config: cfg, fonte } = await lerPixConfigTempoReal()
   res.json(cfg)
 })
 
@@ -1557,11 +1595,13 @@ async function savePixConfigHandler(req, res) {
 app.post('/api/pix-config', autenticarToken, isAdmin, savePixConfigHandler)
 app.post('/api/pix/config', autenticarToken, isAdmin, savePixConfigHandler)
 app.post('/api/admin/pix-config', autenticarToken, isAdmin, savePixConfigHandler)
-app.get('/api/pix/config', autenticarToken, (req, res) => {
+// Alias público de leitura (mesma fonte Turso do GET /api/pix-config).
+app.get('/api/pix/config', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
-  res.json(loadPixConfig())
+  const { config: cfg } = await lerPixConfigTempoReal()
+  res.json(cfg)
 })
 
 // POST /api/pix-config/teste -> gera QR de teste com os dados da tela (só admin).

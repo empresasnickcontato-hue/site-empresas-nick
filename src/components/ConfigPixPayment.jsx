@@ -4,6 +4,19 @@ import { api } from '../services/api.js'
 // ConfigPixPayment — admin: salva chave/valores Pix + CRUD de planos.
 // Tempo real: após salvar, dispara CustomEvent para a aba Pagamentos
 // atualizar sem F5 (mesmo padrão do painel /admin via BroadcastChannel/localStorage).
+// Token do ADMIN (evita tela preta no login): api.js já injeta sozinho,
+// mas aqui vai explícito como garantia nas chamadas deste painel.
+function getAdminToken() {
+  const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+  try {
+    return token || localStorage.getItem('adminToken') || localStorage.getItem('en_token') || '';
+  } catch { return token || '' }
+}
+function adminHeaders(extra) {
+  const t = getAdminToken();
+  return t ? { 'Authorization': `Bearer ${t}`, ...(extra || {}) } : { ...(extra || {}) };
+}
+
 function ConfigPixPayment() {
   const [form, setForm] = useState({
     chavePix: '',
@@ -22,7 +35,7 @@ function ConfigPixPayment() {
   useEffect(() => {
     async function load() {
       try {
-        const res = await api.get('/api/pix-config?t=' + Date.now())
+        const res = await api.get('/api/pix-config?t=' + Date.now(), { headers: adminHeaders() })
         if (!res.ok) return
         const c = await res.json()
         setForm({
@@ -64,12 +77,34 @@ function ConfigPixPayment() {
     if (e) e.preventDefault()
     setMsg('Salvando...')
     try {
-      const res = await api.post('/api/admin/pix-config', form)
+      const res = await api.post('/api/admin/pix-config', form, { headers: adminHeaders() })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
         setMsg(data.erro || 'Erro ao salvar')
         return
       }
+      // Confirmação no Turso: POST salvou, GET prova que o site já enxerga.
+      // GET /api/pix-config é público e lê do Turso primeiro.
+      try {
+        const conf = await api.get('/api/pix-config?t=' + Date.now(), { headers: adminHeaders(), cache: 'no-store' })
+        if (conf.ok) {
+          const salva = await conf.json()
+          setForm({
+            chavePix: salva.chavePix || '',
+            tipoChave: salva.tipoChave || 'Email',
+            nomeRecebedor: salva.nomeRecebedor || '',
+            cidadeRecebedor: salva.cidadeRecebedor || '',
+            valorStart: salva.valorStart ?? '',
+            valorPro: salva.valorPro ?? '',
+            valorPremium: salva.valorPremium ?? '',
+            modoTeste: !!salva.modoTeste,
+          })
+          setMsg('Configuração salva e confirmada no banco! Site atualizado em tempo real.')
+          window.dispatchEvent(new CustomEvent('pix-config-updated', { detail: salva }))
+          broadcast('pix-config-updated', salva)
+          return
+        }
+      } catch {}
       setMsg('Configuração salva! Aba Pagamentos atualizada em tempo real.')
       window.dispatchEvent(new CustomEvent('pix-config-updated', { detail: data.config }))
       broadcast('pix-config-updated', data.config)
@@ -86,7 +121,7 @@ function ConfigPixPayment() {
     }
     setMsgPlano('Salvando...')
     try {
-      const res = await api.post('/api/admin/planos', plano)
+      const res = await api.post('/api/admin/planos', plano, { headers: adminHeaders() })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
         setMsgPlano(data.erro || 'Erro ao salvar plano')
