@@ -619,7 +619,7 @@ function autenticarToken(req, res, next) {
   const fromX = req.headers['x-access-token'] || null;
   const token = fromBearer || fromCookie || fromQuery || fromX;
   if (!token) {
-    console.log('[auth-debug] FALHOU em ' + req.path + ' Bearer:' + (fromBearer?'ok':'vazio') + ' Cookie:' + (fromCookie?'ok':'vazio'));
+    console.log('[auth-debug] FALHOU em ' + req.path);
     return res.status(401).json({ error: 'token nao fornecido' });
   }
   try {
@@ -636,18 +636,14 @@ const autenticaToken = autenticarToken;
 const authMiddleware = autenticarToken;
 const authenticarToken = autenticarToken;
 
-
-// aliases compat
-const authMiddleware = autenticarToken;
-
-
-
 function isAdmin(req, res, next) {
   if (!req.user) return res.status(401).json({ error: 'nao autenticado' });
   const role = req.user.role || (req.user.isAdmin? 'admin' : null);
   if (role!== 'admin') return res.status(403).json({ error: 'Acesso negado - role: ' + (role || 'sem role') });
   next();
 }
+
+
 
 
 
