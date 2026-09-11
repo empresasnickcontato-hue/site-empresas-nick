@@ -624,7 +624,7 @@ function autenticarToken(req, res, next) {
   }
   try {
     const SECRET = process.env.JWT_SECRET || 'nick_secret_super_2024';
-    const decoded = require('jsonwebtoken').verify(token, SECRET);
+    const decoded = jwt.verify(token, SECRET);
     req.userId = decoded.id || decoded.userId || decoded._id;
     req.user = decoded;
     return next();
