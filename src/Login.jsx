@@ -23,7 +23,7 @@ function Login({ onVoltar, onIrCadastro, onLogado, onEsqueciSenha }) {
     setLoading(true)
     setErro('')
     try {
-      const res = await api.post('/login', { email: form.email.trim(), senha: form.senha })
+      const res = await api.post('/auth/login', { email: form.email.trim(), senha: form.senha })
       const data = await res.json()
       if (!res.ok) {
         setErro(data.erro || 'E-mail ou senha incorretos.')
