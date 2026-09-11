@@ -13,12 +13,23 @@ import QRCode from 'qrcode'
 import multer from 'multer'
 import crypto from 'crypto'
 import { sendEmail, isEmailConfigured } from './src/lib/email.js'
-import { turso, initTurso } from './src/lib/turso.js'
-await initTurso();
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 dotenv.config({ path: path.join(__dirname, '.env') })
+dotenv.config()
+
+// Turso DEPOIS do dotenv (import dinâmico): assim o backend/.env local é
+// enxergado no boot. No Render as vars vêm do dashboard (já estão no
+// process.env antes do boot). Falha aqui NUNCA derruba o servidor.
+const { turso } = await import('./src/lib/turso.js').catch((e) => {
+  console.error('[DB] Falha ao carregar módulo Turso:', (e && e.message) || e)
+  return { turso: null }
+})
+if (!process.env.JWT_SECRET) {
+  console.warn('[AUTH] JWT_SECRET não definido — usando fallback inseguro. Defina o MESMO JWT_SECRET no backend e no frontend/deploy, senão o login dá 401 e o /admin mostra zeros.')
+}
+console.log(`[DB] Turso ${turso ? 'conectado — sync JSON <-> Turso ATIVO' : 'DESABILITADO — usando só JSON local. Defina TURSO_DATABASE_URL e TURSO_AUTH_TOKEN no ambiente.'}`)
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -57,7 +68,14 @@ function noCache(req, res, next) {
 app.use('/api', noCache)
 app.use('/me', noCache)
 
-app.get("/debug", async (req, res) => { try { const r = await turso.execute("SELECT COUNT(*) as total FROM users"); const u = await turso.execute("SELECT * FROM users LIMIT 5"); res.json({ status: "OK TURSO", total: r.rows[0], preview: u.rows }); } catch (e) { res.status(500).json({ erro: e.message }); } });
+app.get("/debug", async (req, res) => {
+  try {
+    if (!turso) return res.status(500).json({ status: "TURSO_OFF", erro: "Turso desabilitado: defina TURSO_DATABASE_URL e TURSO_AUTH_TOKEN no ambiente. Veja os logs [DB] no boot." });
+    const r = await turso.execute("SELECT COUNT(*) as total FROM users");
+    const u = await turso.execute("SELECT * FROM users LIMIT 5");
+    res.json({ status: "OK TURSO", total: r.rows[0], preview: u.rows });
+  } catch (e) { res.status(500).json({ status: "TURSO_ERRO", erro: e.message }); }
+});
 
 
 function ensureDataFile() {
@@ -842,7 +860,7 @@ app.get('/api/projetos', autenticarToken, isAdmin, (req, res) => {
 })
 
 // Alias oficial do painel admin (3001): GET /api/admin/projetos[?filtro=ativos|concluidos|todos]
-app.get('/api/admin/projetos', autenticarToken, isAdmin, (req, res) => {
+function listarProjetosAdmin(req, res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
@@ -851,8 +869,13 @@ app.get('/api/admin/projetos', autenticarToken, isAdmin, (req, res) => {
   let list = readProjects()
   if (f === 'ativos') list = list.filter(isProjetoAtivo)
   else if (f === 'concluidos' || f === 'concluido') list = list.filter(isProjetoConcluido)
-  res.json(list.map(publicProjeto))
-})
+  const out = list.map(publicProjeto)
+  console.log(`[admin] GET ${req.path} filtro=${f} -> ${out.length} projeto(s) (${(req.user && req.user.email) || '?'})`)
+  res.json(out)
+}
+app.get('/api/admin/projetos', autenticarToken, isAdmin, listarProjetosAdmin)
+// Alias em inglês: GET /api/admin/projects (mesma base de /api/admin/projetos)
+app.get('/api/admin/projects', autenticarToken, isAdmin, listarProjetosAdmin)
 
 // DELETE /api/admin/projetos/:id -> deleta UM projeto do histórico (só admin)
 app.delete('/api/admin/projetos/:id', autenticarToken, isAdmin, (req, res) => {
@@ -1316,14 +1339,18 @@ app.get('/api/planos', (req, res) => {
 })
 
 // GET /api/admin/planos (só admin) -> TODOS (ativos e inativos) para gestão
-app.get('/api/admin/planos', autenticarToken, isAdmin, (req, res) => {
+function listarPlanosAdmin(req, res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
   const list = readPlanos().map(publicPlano)
   list.sort((a, b) => a.ordem - b.ordem)
+  console.log(`[admin] GET ${req.path} -> ${list.length} plano(s) (${(req.user && req.user.email) || '?'})`)
   res.json(list)
-})
+}
+app.get('/api/admin/planos', autenticarToken, isAdmin, listarPlanosAdmin)
+// Alias em inglês: GET /api/admin/plans (mesma base de /api/admin/planos)
+app.get('/api/admin/plans', autenticarToken, isAdmin, listarPlanosAdmin)
 
 // POST /api/planos (só admin) { nome, preco, descricao?, recursos?, destaque?, ativo?, ordem? }
 // BOTÃO 2 — ADICIONAR PLANO (seção 4 do ConfigPixPayment). preco via Number.parseFloat
@@ -1482,7 +1509,9 @@ app.get('/api/pix-config', autenticarToken, (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
-  res.json(loadPixConfig())
+  const cfg = loadPixConfig()
+  console.log(`[admin] GET /api/pix-config (${(req.user && req.user.email) || '?'})`)
+  res.json(cfg)
 })
 
 // POST /api/pix-config -> salva config (só admin). Retorna qrPreview: QR do
@@ -1772,6 +1801,7 @@ app.get('/api/admin/stats', autenticarToken, isAdmin, (req, res) => {
   const total = rowsTotal[0]?.total || 0
   const hoje = rowsHoje[0]?.total || 0
   const semana = rowsSemana[0]?.total || 0
+  console.log(`[admin] GET /api/admin/stats -> total=${total} hoje=${hoje} 7d=${semana} (${(req.user && req.user.email) || '?'})`)
   res.json({ ...out, totalUsuarios: total, cadastrosHoje: hoje, ultimos7Dias: semana, ultimos7dias: semana, totalEmails: total })
 })
 
@@ -1796,6 +1826,7 @@ app.get('/api/admin/users', autenticarToken, isAdmin, (req, res) => {
     const { senhaHash: _, senha: __, resetToken: _rt, resetTokenExpiry: _rte, ...pub } = u
     return pub
   })
+  console.log(`[admin] GET /api/admin/users -> ${users.length} usuário(s) (${(req.user && req.user.email) || '?'})`)
   res.json(users)
 })
 
@@ -2135,6 +2166,9 @@ td{color:#e2e8f0}
   </div>
 </div>
 <script>
+// Handoff ?token= -> localStorage: o frontend abre /admin em nova aba
+// (origem diferente => localStorage vazio). Salva nas 4 chaves e limpa a URL.
+(function(){try{var m=new URLSearchParams(location.search).get('token');if(m){['token','adminToken','authToken','en_token'].forEach(function(k){try{localStorage.setItem(k,m)}catch(e){}});var u=new URL(location.href);u.searchParams.delete('token');history.replaceState(null,'',u);}}catch(e){}})();
 let todos=[]
 let projetosAtivos=[]
 let projetosConcluidos=[]
@@ -2390,6 +2424,12 @@ function loadStats(){
     document.getElementById('seuEmail').innerText='';
     setCard('totalUsuarios',0); setCard('cadastrosHoje',0); setCard('ultimos7dias',0);
     renderGrafico([]);
+    // Erro visível (antes ficava "0" silencioso parecendo banco vazio):
+    try{
+      var gv=document.getElementById('grafico-vazio');
+      gv.style.display='block';
+      gv.innerHTML='Erro ao carregar ('+esc(String((e&&e.message)||e))+'). Faça login de novo como admin e recarregue.';
+    }catch(e2){}
   });
 }
 async function loadUsers(){
@@ -2400,7 +2440,14 @@ async function loadUsers(){
     todos=await u.json(); render(todos);
   }catch(e){
     console.error('Falha ao carregar /api/admin/users:', e);
-    todos=[]; render([]);
+    todos=[];
+    try{
+      var tb=document.getElementById('tbody');
+      var msg401=String((e&&e.message)||e).indexOf('401')!==-1
+        ? 'Sessão expirada ou sem login — entre de novo como admin e recarregue.'
+        : 'Erro ao carregar usuários ('+esc(String((e&&e.message)||e))+').';
+      tb.innerHTML='<tr><td colspan="5" style="text-align:center;color:#f87171">'+msg401+'</td></tr>';
+    }catch(e2){ render([]); }
   }
 }
 async function load(){
@@ -2447,11 +2494,17 @@ async function loadProjetosTab(aba){
   cont.innerHTML='<p style="color:#94a3b8">Carregando...</p>';
   try{
     const r=await authFetch('/api/admin/projetos?filtro='+aba,{credentials:'include', headers: authHeaders()});
-    const list= r.ok ? await r.json() : [];
+    if(!r.ok){
+      if(r.status===401) cont.innerHTML='<p style="color:#f87171">Sessão expirada — entre de novo como admin e recarregue.</p>';
+      else cont.innerHTML='<p style="color:#f87171">Erro ao carregar (HTTP '+r.status+').</p>';
+      return;
+    }
+    const list=await r.json();
     if(aba==='ativos'){ projetosAtivos=list; selecionadosAtivos=new Set() }
     else{ projetosConcluidos=list; selecionadosConcluidos=new Set() }
   }catch(e){
-    cont.innerHTML='<p style="color:#f87171">Erro de conexão.</p>';
+    console.error('Falha ao carregar projetos:', e);
+    cont.innerHTML='<p style="color:#f87171">Erro de conexão. Verifique se o backend está no ar e recarregue.</p>';
     return;
   }
   renderProjetosTab(aba)
@@ -2864,21 +2917,28 @@ th{color:#94a3b8;font-weight:600;font-size:.78rem;text-transform:uppercase}
   </div>
 </div>
 <script>
+// Handoff ?token= -> localStorage (mesma regra do /admin).
+(function(){try{var m=new URLSearchParams(location.search).get('token');if(m){['token','adminToken','authToken','en_token'].forEach(function(k){try{localStorage.setItem(k,m)}catch(e){}});var u=new URL(location.href);u.searchParams.delete('token');history.replaceState(null,'',u);}}catch(e){}})();
 // Interceptor global do admin (padrão api.js): TODO fetch envia
 // cookie httpOnly + Authorization: Bearer do localStorage.
+function adminTokenFunc(){
+  try{
+    return localStorage.getItem('token') || localStorage.getItem('adminToken') || localStorage.getItem('authToken') || localStorage.getItem('en_token') || '';
+  }catch(e){ return '' }
+}
 function authFetch(url, options){
   options = options || {};
   options.credentials = 'include';
   options.headers = options.headers || {};
   try{
-    const t = localStorage.getItem('en_token');
+    const t = adminTokenFunc();
     if(t && !options.headers['Authorization'] && !options.headers['authorization']) options.headers['Authorization'] = 'Bearer ' + t;
   }catch(e){}
   return fetch(url, options);
 }
 function authHeaders(){
   let h={};
-  try{ const t=localStorage.getItem('en_token'); if(t) h={ 'Authorization':'Bearer '+t }; }catch(e){}
+  try{ const t=adminTokenFunc(); if(t) h={ 'Authorization':'Bearer '+t }; }catch(e){}
   return h;
 }
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
@@ -3067,6 +3127,8 @@ input:focus,select:focus{border-color:#06b6d4}
   </div>
 </div>
 <script>
+// Handoff ?token= -> localStorage (mesma regra do /admin).
+(function(){try{var m=new URLSearchParams(location.search).get('token');if(m){['token','adminToken','authToken','en_token'].forEach(function(k){try{localStorage.setItem(k,m)}catch(e){}});var u=new URL(location.href);u.searchParams.delete('token');history.replaceState(null,'',u);}}catch(e){}})();
 // Broadcast tempo real ConfigPixPayment -> aba Pagamentos (sem F5).
 // Mesma aba/página: CustomEvent. Outra aba/página: localStorage (storage event) + BroadcastChannel.
 function broadcastPixAdmin(type, payload){

@@ -18,17 +18,26 @@ function Pagamentos() {
   const [qrStatus, setQrStatus] = useState('')
   const [msg, setMsg] = useState('')
   const [loading, setLoading] = useState(true)
+  const [erroLoad, setErroLoad] = useState('')
 
   useEffect(() => {
     const loadAll = async () => {
       try {
+        setErroLoad('')
         const [pixRes, planosRes] = await Promise.all([
           api.get('/api/pix-config?t=' + Date.now()),
           api.get('/api/admin/planos?t=' + Date.now()),
         ])
+        if (pixRes.status === 401 || planosRes.status === 401) {
+          setErroLoad('Sessão expirada — entre de novo como admin e recarregue.')
+        } else if (!pixRes.ok && !planosRes.ok) {
+          setErroLoad(`Erro ao carregar (HTTP ${pixRes.status}/${planosRes.status}). Verifique se o backend está no ar.`)
+        }
         if (pixRes.ok) setPixConfig(await pixRes.json())
         if (planosRes.ok) setPlanos(await planosRes.json())
-      } catch {} finally {
+      } catch {
+        setErroLoad('Erro de conexão com o backend. Verifique se ele está no ar e recarregue.')
+      } finally {
         setLoading(false)
       }
     }
@@ -104,6 +113,8 @@ function Pagamentos() {
   }
 
   if (loading) return <p>Carregando pagamentos...</p>
+
+  if (erroLoad && !pixConfig && planos.length === 0) return <p>{erroLoad}</p>
 
   return (
     <div style={{ display: 'grid', gap: '16px' }}>
