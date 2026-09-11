@@ -1,4 +1,4 @@
-const BASE = "https://site-empresas-nick-backend.onrender.com";
+const BASE = "https://site-empresas-nick-backend.onrender.com/api";
 export const BASE_URL = BASE;
 export const API_URL = BASE;
 export const getToken = () => localStorage.getItem('adminToken') || localStorage.getItem('token') || '';
