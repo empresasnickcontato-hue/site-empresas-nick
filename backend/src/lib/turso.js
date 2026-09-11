@@ -1,19 +1,20 @@
 import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const DATA_FILE = path.join(__dirname, '../../data/users.json');
+const PROJECTS_FILE = path.join(__dirname, '../../data/projects.json');
 
 let turso = null;
-let localUsers = [];
-let localProjects = [];
-
-const DATA_FILE = "./data/users.json";
-const PROJECTS_FILE = "./data/projects.json";
 
 try {
-  console.log("[DB] Tentando conectar Turso...");
-  console.log("[DB] URL existe?", !!process.env.TURSO_DATABASE_URL);
-  console.log("[DB] TOKEN existe?", !!process.env.TURSO_AUTH_TOKEN);
+  console.log("[DB] Conectando Turso...");
   
   if (!process.env.TURSO_DATABASE_URL || !process.env.TURSO_AUTH_TOKEN) {
-    throw new Error("Variaveis TURSO_DATABASE_URL ou TURSO_AUTH_TOKEN nao definidas no Render");
+    throw new Error("Sem env vars");
   }
 
   const { createClient } = await import("@libsql/client");
@@ -27,41 +28,33 @@ try {
     "CREATE TABLE IF NOT EXISTS projects (id TEXT PRIMARY KEY, data TEXT)"
   ]);
 
-  // Recupera dados do Turso
+  const dirUsers = path.dirname(DATA_FILE);
+  if (!fs.existsSync(dirUsers)) fs.mkdirSync(dirUsers, { recursive: true });
+
   try {
     const u = await turso.execute("SELECT data FROM users");
+    console.log(`[DB] Achou ${u.rows.length} usuarios no Turso`);
     if (u.rows.length > 0) {
-      fs.writeFileSync(DATA_FILE, JSON.stringify(u.rows.map(r => JSON.parse(r.data)), null, 2));
-      console.log(`[DB] Recuperou ${u.rows.length} usuarios do Turso`);
+      const users = u.rows.map(r => JSON.parse(r.data));
+      fs.writeFileSync(DATA_FILE, JSON.stringify(users, null, 2));
+      console.log("[DB] Recuperou users.json do Turso!");
     }
-  } catch(e){}
+  } catch(e){ console.log("[DB] Erro recupera users", e.message) }
 
   try {
     const p = await turso.execute("SELECT data FROM projects");
     if (p.rows.length > 0) {
-      fs.writeFileSync(PROJECTS_FILE, JSON.stringify(p.rows.map(r => JSON.parse(r.data)), null, 2));
-      console.log(`[DB] Recuperou ${p.rows.length} projetos do Turso`);
+      const projs = p.rows.map(r => JSON.parse(r.data));
+      fs.writeFileSync(PROJECTS_FILE, JSON.stringify(projs, null, 2));
+      console.log("[DB] Recuperou projects do Turso!");
     }
   } catch(e){}
 
   console.log("[DB] Turso conectado!");
 
 } catch (e) {
-  console.log("[DB] Turso NAO disponivel, usando JSON local. Motivo:", e.message);
+  console.log("[DB] Turso NAO disponivel:", e.message);
 }
 
 export { turso };
-
 export async function initTurso() { return turso; }
-export async function saveUserToTurso(user) {
-  if (!turso) return;
-  try {
-    await turso.execute({ sql: "INSERT OR REPLACE INTO users (id, data) VALUES (?, ?)", args: [user.id, JSON.stringify(user)] });
-  } catch (e) { console.log("[DB] Erro saveUser", e.message) }
-}
-export async function saveProjectToTurso(project) {
-  if (!turso) return;
-  try {
-    await turso.execute({ sql: "INSERT OR REPLACE INTO projects (id, data) VALUES (?, ?)", args: [project.id, JSON.stringify(project)] });
-  } catch (e) { console.log("[DB] Erro saveProject", e.message) }
-}
