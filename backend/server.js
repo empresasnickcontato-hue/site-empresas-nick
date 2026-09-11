@@ -641,24 +641,13 @@ const authenticarToken = autenticarToken;
 
 
 function isAdmin(req, res, next) {
-  const { token: rawToken } = extractToken(req)
-  const token = rawToken || (req.user && req.user.role === 'admin' ? 'ok' : null)
-  if (!token) return res.status(401).send('Sem token, faça login')
-  try {
-    if (token !== 'ok') {
-      const decoded = jwt.verify(token, SECRET)
-      if (decoded.role !== 'admin') return res.status(403).send('Acesso negado - seu role é: ' + decoded.role)
-      req.user = decoded
-    }
-    // Checagem real no banco: revogação vale na hora, mesmo com token antigo ainda válido.
-    const dbUser = readUsers().find((x) => x.id === (req.user && req.user.id))
-    if (!dbUser || dbUser.role !== 'admin') return res.status(403).send('Acesso negado - sem role admin no banco')
-    req.user = { id: dbUser.id, email: dbUser.email, role: dbUser.role }
-    next()
-  } catch (e) {
-    return res.status(401).send('Token inválido')
-  }
+  if (!req.user) return res.status(401).json({ error: 'nao autenticado' });
+  const role = req.user.role || (req.user.isAdmin? 'admin' : null);
+  if (role!== 'admin') return res.status(403).json({ error: `Acesso negado - seu role e: ${role || 'sem role'}` });
+  next();
 }
+
+
 
 app.get('/', (req, res) => {
   res.json({ ok: true, msg: 'Empresas Nick API online' })
