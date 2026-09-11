@@ -405,7 +405,7 @@ function DashboarClient({ onCheckout, onSupport }) {
             <h3>Segurança</h3>
             <p className="muted">Sua sessão é protegida e seus projetos são visíveis só para você.</p>
             {user.role === 'admin' ? (
-              <a href="http://localhost:3001/admin" target="_blank" rel="noreferrer" className="btn btn-primary btn-small" style={{ marginTop: '12px', display: 'inline-block', textDecoration: 'none' }}>
+              <a href="https://site-empresas-nick-backend.onrender.com/admin" onClick={(e) => { e.preventDefault(); const t = localStorage.getItem('token'); const url = t ? `https://site-empresas-nick-backend.onrender.com/admin?token=${encodeURIComponent(t)}` : 'https://site-empresas-nick-backend.onrender.com/admin'; window.open(url, '_blank', 'noopener,noreferrer') }} target="_blank" rel="noreferrer" className="btn btn-primary btn-small" style={{ marginTop: '12px', display: 'inline-block', textDecoration: 'none' }}>
                 Acessar painel admin
               </a>
             ) : (

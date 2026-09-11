@@ -533,15 +533,35 @@ function gerarToken(payload) {
 }
 const COOKIE_OPTS = { httpOnly: false, sameSite: 'lax', maxAge: 7 * 24 * 60 * 60 * 1000, path: '/' }
 
+function extractToken(req) {
+  // 1) Authorization: Bearer <token> (ou token puro)
+  const header = req.headers.authorization || req.headers.Authorization
+  let fromHeader = null
+  if (header) {
+    if (String(header).startsWith('Bearer ')) fromHeader = String(header).split(' ')[1]
+    else fromHeader = String(header).trim() || null
+  }
+  // 2) ?token= na URL (link "Painel Admin" do frontend)
+  const fromQuery = (req.query && req.query.token) ? String(req.query.token) : null
+  // 3) x-access-token (raw ou Bearer)
+  const xHead = req.headers['x-access-token']
+  let fromX = null
+  if (xHead) {
+    if (String(xHead).startsWith('Bearer ')) fromX = String(xHead).split(' ')[1]
+    else fromX = String(xHead).trim() || null
+  }
+  // 4) Cookie (primário em same-origin)
+  const fromCookie = req.cookies?.token || req.cookies?.authToken || req.cookies?.adminToken || req.cookies?.session || null
+  return { fromCookie, fromHeader, fromQuery, fromX, token: fromCookie || fromHeader || fromQuery || fromX || null }
+}
+
 function autenticarToken(req, res, next) {
-  // Auth via COOKIE (primário) + Authorization Bearer (fallback).
+  // Auth via COOKIE (primário) + Authorization Bearer + ?token= + x-access-token.
   // Aceita o cookie em qualquer nome usado pelo login/painel
-  // (`token`/`authToken`/`adminToken`/`session`) ou o header Bearer.
-  const tokenFromCookie = req.cookies?.token || req.cookies?.authToken || req.cookies?.adminToken || req.cookies?.session
-  const header = req.headers.authorization
-  const tokenFromHeader = header && header.startsWith('Bearer ') ? header.split(' ')[1] : null
-  const token = tokenFromCookie || tokenFromHeader
-  console.log(`[auth-debug] cookie: ${tokenFromCookie ? 'presente' : 'ausente'} | Authorization: ${tokenFromHeader ? 'presente' : 'ausente'} | rota: ${req.path}`)
+  // (`token`/`authToken`/`adminToken`/`session`), o header Bearer,
+  // o token na query (?token=...) e o header x-access-token.
+  const { fromCookie, fromHeader, fromQuery, fromX, token } = extractToken(req)
+  console.log(`[auth-debug] cookie: ${fromCookie ? 'presente' : 'ausente'} | Authorization: ${fromHeader ? 'presente' : 'ausente'} | query.token: ${fromQuery ? 'presente' : 'ausente'} | x-access-token: ${fromX ? 'presente' : 'ausente'} | rota: ${req.path}`)
   if (!token) return res.status(401).json({ erro: 'Token não fornecido.', error: 'Token não fornecido' })
   try {
     req.user = jwt.verify(token, SECRET)
@@ -552,10 +572,8 @@ function autenticarToken(req, res, next) {
 }
 
 function isAdmin(req, res, next) {
-  const tokenFromCookie = (req.cookies && (req.cookies.token || req.cookies.authToken || req.cookies.adminToken || req.cookies.session)) || null
-  const header = req.headers.authorization
-  const tokenFromHeader = header && header.startsWith('Bearer ') ? header.split(' ')[1] : null
-  const token = tokenFromCookie || tokenFromHeader || (req.user && req.user.role === 'admin' ? 'ok' : null)
+  const { token: rawToken } = extractToken(req)
+  const token = rawToken || (req.user && req.user.role === 'admin' ? 'ok' : null)
   if (!token) return res.status(401).send('Sem token, faça login')
   try {
     if (token !== 'ok') {

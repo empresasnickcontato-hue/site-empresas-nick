@@ -11,9 +11,18 @@ import EsqueciSenha from './pages/EsqueciSenha.jsx'
 import ResetarSenha from './pages/ResetarSenha.jsx'
 import { apiFetch } from './services/api.js'
 
-// Painel admin unificado: SOMENTE em http://localhost:3001/admin (backend).
-// O frontend (5173) não tem mais rota /admin — link abaixo redireciona.
-const ADMIN_URL = 'http://localhost:3001/admin'
+// Painel admin unificado: SOMENTE no backend Render (/admin).
+// O frontend não tem rota /admin — link abaixo redireciona com ?token=.
+const ADMIN_BASE_URL = 'https://site-empresas-nick-backend.onrender.com/admin'
+
+function getAdminUrl() {
+  try {
+    const t = localStorage.getItem('token')
+    return t ? `${ADMIN_BASE_URL}?token=${encodeURIComponent(t)}` : ADMIN_BASE_URL
+  } catch {
+    return ADMIN_BASE_URL
+  }
+}
 
 function App() {
   const { user, loading, unauthorized, logout } = useAuth()
@@ -146,7 +155,7 @@ function App() {
                   Portfólio Sites Criados<span className="portfolio-novo-badge"><span className="ciano-dot"></span> NOVO</span>
                 </a>
                 {user.role === 'admin' && (
-                  <a href={ADMIN_URL} onClick={(e) => { e.preventDefault(); window.open(ADMIN_URL, '_blank', 'noopener,noreferrer') }} style={{ fontSize: '.85rem', color: '#0891b2', fontWeight: 700 }}>
+                  <a href={getAdminUrl()} onClick={(e) => { e.preventDefault(); window.open(getAdminUrl(), '_blank', 'noopener,noreferrer') }} style={{ fontSize: '.85rem', color: '#0891b2', fontWeight: 700 }}>
                     Painel Admin
                   </a>
                 )}

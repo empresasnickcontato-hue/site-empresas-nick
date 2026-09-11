@@ -5,7 +5,7 @@
 //   lendo as chaves 'token', 'adminToken', 'authToken' e 'en_token' (login salva nas 4)
 // - sempre envia o cookie httpOnly (credentials: 'include') como segundo canal de auth
 
-export const BASE_URL = (import.meta.env && import.meta.env.VITE_API_URL) || 'http://localhost:3001'
+export const BASE_URL = (import.meta.env && import.meta.env.VITE_API_URL) || 'https://site-empresas-nick-backend.onrender.com'
 
 export const TOKEN_KEYS = ['token', 'adminToken', 'authToken', 'en_token']
 
