@@ -1546,7 +1546,7 @@ async function gerarPix(chave, nome, cidade, valor, txid, tipoChave) {
 
 // GET /api/pix-config -> PÚBLICO (site/checkout lê sem token, tempo real).
 // Retorna SEMPRE do Turso primeiro (fonte oficial); fallback: JSON local.
-app.get('/api/pix-config', async (req, res) => {
+app.get('/api/pix-config', autenticarToken, async (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
@@ -1607,7 +1607,7 @@ app.get('/api/admin/pix-config', autenticarToken, isAdmin, async (req, res) => {
   res.json(cfg)
 })
 // Alias público de leitura (mesma fonte Turso do GET /api/pix-config).
-app.get('/api/pix/config', async (req, res) => {
+app.get('/api/pix/config', autenticarToken, async (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
